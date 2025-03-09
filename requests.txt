@@ -1,0 +1,27 @@
+curl http://localhost:8080/albums \
+    --include \
+    --header "Content_type: applucation/json" \
+    --request "POST" \ 
+    --data '{"id": "4", "title": "forth", "artist": "fourth artist", "price": 400.40}'
+
+###
+//get all
+curl http://localhost:8080/albums
+
+###
+//get one
+curl http://localhost:8080/albums/3
+
+
+###
+//badrequest
+curl http://localhost:8080/albums \
+    --include \
+    --header "Content_type: applucation/json" \
+    --request "POST" \ 
+    --data ''
+
+###
+//delete
+curl -X "DELETE" http://localhost:8080/albums/2
+
