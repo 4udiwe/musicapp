@@ -1,3 +1,4 @@
+//post
 curl http://localhost:8080/albums \
     --include \
     --header "Content_type: applucation/json" \
@@ -25,3 +26,10 @@ curl http://localhost:8080/albums \
 //delete
 curl -X "DELETE" http://localhost:8080/albums/2
 
+###
+//put
+curl -X "PUT" http://localhost:8080/albums/1 \
+    --include \
+    --header "Content_type: applucation/json" \
+    --request "PUT" \ 
+    --data '{"title": "new title", "artist": "new artist"}'
