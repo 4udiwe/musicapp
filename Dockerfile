@@ -9,7 +9,7 @@ COPY . .
 RUN go mod download
 
 # Собираем приложение (статически линкуем для уменьшения размера)
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main cmd/main.go
 
 # Используем ultra-легковесный образ для запуска
 FROM alpine
