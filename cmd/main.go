@@ -1,12 +1,12 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
+	"context"
 	"log"
 
 	"github.com/4udiwe/musicshop/config"
 	"github.com/4udiwe/musicshop/internal/api/post_albums"
+	"github.com/4udiwe/musicshop/internal/database"
 	"github.com/4udiwe/musicshop/internal/repo/albums"
 	albums_service "github.com/4udiwe/musicshop/internal/service/albums"
 	"github.com/4udiwe/musicshop/pkg/validator"
@@ -14,27 +14,28 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func InitDB(c *config.Config) *sql.DB {
-	db, err := sql.Open("postgres", c.PostgresURL)
-	if err != nil {
-		log.Fatalf("Error opening database: %v", err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-
-	fmt.Println("Successfully connected to PostgreSQL!")
-	return db
-}
-
 func main() {
-
+	ctx := context.Background()
 	c := config.LoadConfig()
 
+	pool, err := database.NewPgxPool(ctx, c)
+	if err != nil {
+		log.Fatalf("Failed to create pool: %v", err)
+		return
+	}
+	defer pool.Close()
+
+	if err := database.CreateAlbumsTable(ctx, pool); err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+		return
+	}
+
 	e := echo.New()
+	albumsRepository := albums.New(pool)
+	albumsService := albums_service.New(albumsRepository)
+	postHandler := post_albums.New(albumsService)
+
 	e.Validator = validator.NewCustomValidator()
-	e.POST("/albums", post_albums.New(albums_service.New(albums.New(InitDB(c)))).Handle)
+	e.POST("/albums", postHandler.Handle)
 	e.Logger.Fatal(e.Start(c.ServerPort))
 }
