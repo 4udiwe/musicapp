@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/4udiwe/musicshop/internal/entity"
-	repo "github.com/4udiwe/musicshop/internal/repo/albums"
+	repo "github.com/4udiwe/musicshop/internal/repo"
 )
 
 type Service struct {
