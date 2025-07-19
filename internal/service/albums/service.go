@@ -32,11 +32,9 @@ func (s *Service) Create(ctx context.Context, a entity.Album) (int64, error) {
 func (s *Service) FindAll(ctx context.Context) ([]entity.Album, error) {
 	albums, err := s.albumRepository.FindAll(ctx)
 	if err != nil {
-		if errors.Is(err, repo.ErrDatabase) {
-			return nil, ErrCannotFetchAlbums
-		}
 		return nil, ErrCannotFetchAlbums
 	}
+
 	return albums, nil
 }
 

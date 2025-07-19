@@ -54,7 +54,7 @@ func (r *Repository) Create(ctx context.Context, genre entity.Genre) (id int64, 
 }
 func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID int64) error {
 	query, args, err := r.builder.
-		Insert("album_genre").
+		Insert("album_genres").
 		Columns("album_id", "genre_id").
 		Values(albumID, genreID).
 		ToSql()

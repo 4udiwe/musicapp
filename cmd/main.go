@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 
+	"github.com/labstack/echo/v4"
+	_ "github.com/lib/pq"
+
 	"github.com/4udiwe/musicshop/config"
 	"github.com/4udiwe/musicshop/internal/api/delete_album_by_id"
 	delete_genres_by_id "github.com/4udiwe/musicshop/internal/api/delete_genre_by_id"
@@ -19,8 +22,6 @@ import (
 	albums_service "github.com/4udiwe/musicshop/internal/service/albums"
 	genres_service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/4udiwe/musicshop/pkg/validator"
-	"github.com/labstack/echo/v4"
-	_ "github.com/lib/pq"
 )
 
 func main() {

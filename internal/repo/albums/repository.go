@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/4udiwe/musicshop/internal/entity"
-	"github.com/4udiwe/musicshop/internal/repo"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/4udiwe/musicshop/internal/entity"
+	"github.com/4udiwe/musicshop/internal/repo"
 )
 
 type Repository struct {
@@ -53,45 +54,37 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 	return id, nil
 }
 
-func (r *Repository) FindAll(ctx context.Context) (albums []entity.Album, err error) {
-	query, args, err := r.builder.
-		Select("id", "title", "artist", "price").
-		From("albums").
+func (r *Repository) FindAll(ctx context.Context) ([]entity.Album, error) {
+	query, args, _ := r.builder.
+		Select(`
+            a.id, 
+            a.title, 
+            a.artist, 
+            a.price,
+            ARRAY_AGG(g.id ORDER BY g.id) FILTER (WHERE g.id IS NOT NULL) as genre_ids,
+            ARRAY_AGG(g.name ORDER BY g.id) FILTER (WHERE g.name IS NOT NULL) as genre_names
+        `).
+		From("albums a").
+		LeftJoin("album_genres ag ON a.id = ag.album_id").
+		LeftJoin("genres g ON ag.genre_id = g.id").
+		GroupBy(`
+			a.id, 
+            a.title, 
+            a.artist, 
+            a.price`).
 		ToSql()
-
-	if err != nil {
-		return nil, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
-	}
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			return nil, fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
-		}
-		return nil, fmt.Errorf("%w: failed to execute query: %v", repo.ErrDatabase, err)
-	}
-	defer rows.Close()
-
-	albums = make([]entity.Album, 0)
-	for rows.Next() {
-		var album entity.Album
-		if err := rows.Scan(&album.ID, &album.Title, &album.Artist, &album.Price); err != nil {
-			return nil, fmt.Errorf("%w: failed to scan row: %v", repo.ErrDatabase, err)
-		}
-		albums = append(albums, album)
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("%w: rows iteration error: %v", repo.ErrDatabase, err)
+	rawAlbums, err := pgx.CollectRows(rows, pgx.RowToStructByName[albumsGenreRow])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse albums data: %w", err)
 	}
 
-	if len(albums) == 0 {
-		return []entity.Album{}, nil // Явно возвращаем пустой слайс вместо nil
-	}
-
-	return albums, nil
+	return convertRowsToAlbums(rawAlbums), nil
 }
 
 func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album, err error) {
