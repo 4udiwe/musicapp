@@ -1,4 +1,4 @@
-package post_albums
+package get_album
 
 import (
 	"context"
@@ -7,5 +7,5 @@ import (
 )
 
 type AlbumsService interface {
-	Create(ctx context.Context, album entity.Album) (int64, error)
+	FindById(ctx context.Context, id int64) (entity.Album, error)
 }

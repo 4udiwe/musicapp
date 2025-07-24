@@ -26,6 +26,7 @@ services:
     environment:
       PG_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
       SERVER_PORT: ${SERVER_PORT}
+      CONFIG_PATH: ${CONFIG_PATH}
 
 volumes:
   postgres_data:

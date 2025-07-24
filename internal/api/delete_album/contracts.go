@@ -1,4 +1,4 @@
-package delete_album_by_id
+package delete_album
 
 import "context"
 

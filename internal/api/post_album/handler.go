@@ -1,4 +1,4 @@
-package get_album_by_id
+package post_album
 
 import (
 	"errors"
@@ -20,24 +20,13 @@ func New(albumsService AlbumsService) *Handler {
 }
 
 type Request struct {
-	ID int64 `param:"id" validate:"required"`
+	Title  string  `json:"title" validate:"required,min=2"`
+	Artist string  `json:"artist" validate:"required"`
+	Price  float64 `json:"price" validate:"required"`
 }
 
 type Response struct {
-	ID     int64   `json:"id"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
-}
-
-// ToResponse преобразует entity в DTO
-func ToResponse(a entity.Album) Response {
-	return Response{
-		ID:     a.ID,
-		Title:  a.Title,
-		Artist: a.Artist,
-		Price:  a.Price,
-	}
+	ID int64 `json:"id"`
 }
 
 func (h *Handler) Handle(c echo.Context) error {
@@ -51,12 +40,16 @@ func (h *Handler) Handle(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	album, err := h.albumsService.FindById(c.Request().Context(), in.ID)
+	id, err := h.albumsService.Create(c.Request().Context(), entity.Album{Title: in.Title, Artist: in.Artist, Price: in.Price})
 	if err != nil {
-		if errors.Is(err, service.ErrAlbumNotFound) {
-			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+		if errors.Is(err, service.ErrAlbumAlreadyExists) {
+			return echo.NewHTTPError(http.StatusConflict, err.Error())
+		}
+		if errors.Is(err, service.ErrCannotCreateAlbum) {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusOK, ToResponse(album))
+
+	return c.JSON(http.StatusCreated, Response{ID: id})
 }

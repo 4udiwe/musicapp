@@ -1,4 +1,4 @@
-package delete_genres_by_id
+package delete_genre
 
 import "context"
 
