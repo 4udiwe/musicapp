@@ -24,7 +24,7 @@ func (app *App) configureRouter(handler *echo.Echo) {
 	{
 		albumsGroup.GET("", app.GetAlbumsHandler().Handle)
 		albumsGroup.GET("/:id", app.GetAlbumHandler().Handle)
-		albumsGroup.POST("", app.PostAlbumGenreHandler().Handle)
+		albumsGroup.POST("", app.PostAlbumsHandler().Handle)
 		albumsGroup.POST("/genres", app.PostAlbumGenreHandler().Handle)
 		albumsGroup.DELETE("/:id", app.DeleteAlbumHandler().Handle)
 	}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -24,7 +25,8 @@ type (
 	}
 
 	Postgres struct {
-		URL string `env-required:"true" yaml:"url" env:"POSTGRES_URL"`
+		URL            string        `env-required:"true" yaml:"url" env:"POSTGRES_URL"`
+		ConnectTimeout time.Duration `env-required:"true" yaml:"connect_timeout" env:"POSTGRES_CONNECT_TIMEOUT"`
 	}
 	Log struct {
 		Level string `env-required:"true" yaml:"level" env:"LOG_LEVEL"`

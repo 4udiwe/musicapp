@@ -2,22 +2,26 @@ package app
 
 import (
 	"context"
+	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/4udiwe/musicshop/config"
 	"github.com/4udiwe/musicshop/internal/api"
+	"github.com/4udiwe/musicshop/internal/database"
 	albums_repo "github.com/4udiwe/musicshop/internal/repo/albums"
 	genres_repo "github.com/4udiwe/musicshop/internal/repo/genres"
 	albums_service "github.com/4udiwe/musicshop/internal/service/albums"
 	genres_service "github.com/4udiwe/musicshop/internal/service/genres"
+	"github.com/4udiwe/musicshop/pkg/httpserver"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 )
 
 type App struct {
-	cfg *config.Config
+	cfg       *config.Config
+	interrupt <-chan os.Signal
 
 	// DB
 	pgxPool *pgxpool.Pool
@@ -72,16 +76,23 @@ func (app *App) Start() {
 	retryDelay := 5 * time.Second
 	var pool *pgxpool.Pool
 
-	for i := 0; i < retryAttempts; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	timeout := app.cfg.Postgres.ConnectTimeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	for i := 0; i < retryAttempts; i++ {
 		pool, err = pgxpool.NewWithConfig(ctx, pgxConf)
 		if err == nil {
-			if err = pool.Ping(ctx); err == nil {
-				app.pgxPool = pool
-				break
+			if err = pool.Ping(ctx); err != nil {
+				log.Printf("Connection established but ping failed: %v", err)
+				continue
 			}
+			app.pgxPool = pool
+			break
 		}
 
 		if i < retryAttempts-1 {
@@ -95,17 +106,35 @@ func (app *App) Start() {
 	}
 
 	defer func() {
-		log.Info("Closing PostgreSQL connection pool...")
-		pool.Close()
+		if pool != nil {
+			log.Info("Closing PostgreSQL connection pool...")
+			pool.Close()
+		}
 	}()
 
+	// Migrations
+
+	if err := database.RunMigrations(context.Background(), app.pgxPool); err != nil {
+		log.Fatalf("Migrations failed: %v", err)
+	}
+
+	// Server
 	log.Info("Start server...")
 	httpServer := httpserver.New(app.EchoHandler(), httpserver.Port(app.cfg.HTTP.Port))
 	httpServer.Start()
 
 	defer func() {
 		if err := httpServer.Shutdown(); err != nil {
-			log.Errorf("app - Start - httpServer.Shutdown: %v", err)
+			log.Errorf("HTTP server shutdown error: %v", err)
 		}
 	}()
+
+	select {
+	case s := <-app.interrupt:
+		log.Infof("app - Start - signal: %v", s)
+	case err := <-httpServer.Notify():
+		log.Errorf("app - Start - server error: %v", err)
+	}
+
+	log.Info("Shutting down...")
 }

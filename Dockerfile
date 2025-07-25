@@ -23,6 +23,8 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /app/main /app/main
+COPY --from=builder /app/config/config.yaml /app/config/config.yaml
+COPY --from=builder /app/internal/database/migrations /app/database/migrations
 
 EXPOSE 8080
 WORKDIR /app

@@ -23,8 +23,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./config:/app/config
     environment:
-      PG_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
+      POSTGRES_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
       SERVER_PORT: ${SERVER_PORT}
       CONFIG_PATH: ${CONFIG_PATH}
 
