@@ -43,9 +43,6 @@ func (h *Handler) Handle(c echo.Context) error {
 		if errors.Is(err, service.ErrGenreAlreadyExists) {
 			return echo.NewHTTPError(http.StatusConflict, err.Error())
 		}
-		if errors.Is(err, service.ErrCannotCreateGenre) {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusCreated, Response{ID: id, Name: in.Name})

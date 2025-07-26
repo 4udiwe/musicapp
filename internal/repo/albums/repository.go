@@ -8,26 +8,24 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/4udiwe/musicshop/internal/entity"
 	"github.com/4udiwe/musicshop/internal/repo"
+	"github.com/4udiwe/musicshop/pkg/postgres"
 )
 
 type Repository struct {
-	pool    *pgxpool.Pool
-	builder squirrel.StatementBuilderType
+	pg *postgres.Postgres
 }
 
-func New(pool *pgxpool.Pool) *Repository {
+func New(postgres *postgres.Postgres) *Repository {
 	return &Repository{
-		pool:    pool,
-		builder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+		pg: postgres,
 	}
 }
 
 func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, err error) {
-	query, args, err := r.builder.
+	query, args, err := r.pg.Builder.
 		Insert("albums").
 		Columns("title", "artist", "price").
 		Values(album.Title, album.Artist, album.Price).
@@ -37,7 +35,7 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 		return 0, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
 
-	err = r.pool.QueryRow(ctx, query, args...).Scan(&id)
+	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -55,7 +53,7 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 }
 
 func (r *Repository) FindAll(ctx context.Context) ([]entity.Album, error) {
-	query, args, _ := r.builder.
+	query, args, _ := r.pg.Builder.
 		Select(`
             a.id, 
             a.title, 
@@ -74,7 +72,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]entity.Album, error) {
             a.price`).
 		ToSql()
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.pg.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -88,7 +86,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]entity.Album, error) {
 }
 
 func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album, err error) {
-	query, args, err := r.builder.
+	query, args, err := r.pg.Builder.
 		Select("id", "title", "artist", "price").
 		From("albums").
 		Where(squirrel.Eq{"id": id}).
@@ -98,7 +96,7 @@ func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album
 	if err != nil {
 		return entity.Album{}, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
-	err = r.pool.QueryRow(ctx, query, args...).Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
+	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entity.Album{}, fmt.Errorf("%w: album with id '%d' not found", repo.ErrAlbumNotFound, id)
@@ -117,7 +115,7 @@ func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album
 }
 
 func (r *Repository) Delete(ctx context.Context, id int64) error {
-	query, args, err := r.builder.
+	query, args, err := r.pg.Builder.
 		Delete("albums").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
@@ -127,7 +125,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	}
 
 	// Используем Exec вместо Query, так как нам не нужны возвращаемые строки
-	result, err := r.pool.Exec(ctx, query, args...)
+	result, err := r.pg.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

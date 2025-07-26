@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"os"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -15,7 +14,7 @@ import (
 	albums_service "github.com/4udiwe/musicshop/internal/service/albums"
 	genres_service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/4udiwe/musicshop/pkg/httpserver"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/4udiwe/musicshop/pkg/postgres"
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,7 +23,7 @@ type App struct {
 	interrupt <-chan os.Signal
 
 	// DB
-	pgxPool *pgxpool.Pool
+	postgres *postgres.Postgres
 
 	// Echo
 	echoHandler *echo.Echo
@@ -67,55 +66,18 @@ func (app *App) Start() {
 	// Postgres
 	log.Info("Connecting to PostgreSQL...")
 
-	pgxConf, err := pgxpool.ParseConfig(app.cfg.Postgres.URL)
-	if err != nil {
-		log.Fatalf("failed to parse conn string: %v", err)
-	}
-
-	retryAttempts := 5
-	retryDelay := 5 * time.Second
-	var pool *pgxpool.Pool
-
-	timeout := app.cfg.Postgres.ConnectTimeout
-	if timeout == 0 {
-		timeout = 5 * time.Second
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	for i := 0; i < retryAttempts; i++ {
-		pool, err = pgxpool.NewWithConfig(ctx, pgxConf)
-		if err == nil {
-			if err = pool.Ping(ctx); err != nil {
-				log.Printf("Connection established but ping failed: %v", err)
-				continue
-			}
-			app.pgxPool = pool
-			break
-		}
-
-		if i < retryAttempts-1 {
-			log.Printf("Attempt %d failed: %v. Retrying in %v...", i+1, err, retryDelay)
-			time.Sleep(retryDelay)
-		}
-	}
+	postgres, err := postgres.New(app.cfg.Postgres.URL, postgres.ConnAttempts(5))
 
 	if err != nil {
-		log.Fatalf("failed to connect to PostgreSQL after %d attempts: %v", retryAttempts, err)
+		log.Fatalf("app - Start - Postgres failed:%v", err)
 	}
+	app.postgres = postgres
 
-	defer func() {
-		if pool != nil {
-			log.Info("Closing PostgreSQL connection pool...")
-			pool.Close()
-		}
-	}()
+	defer postgres.Close()
 
 	// Migrations
-
-	if err := database.RunMigrations(context.Background(), app.pgxPool); err != nil {
-		log.Fatalf("Migrations failed: %v", err)
+	if err := database.RunMigrations(context.Background(), app.postgres.Pool); err != nil {
+		log.Fatalf("app - Start - Migrations failed: %v", err)
 	}
 
 	// Server

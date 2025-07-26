@@ -13,7 +13,6 @@ type CustomValidator struct {
 	v *validator.Validate
 }
 
-// TODO: добавить сообщения об ошибке под все типы которые будут использоваться и валидацию пароля
 func NewCustomValidator() *CustomValidator {
 	v := validator.New()
 	cv := &CustomValidator{v: v}

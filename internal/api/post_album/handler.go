@@ -45,9 +45,6 @@ func (h *Handler) Handle(c echo.Context) error {
 		if errors.Is(err, service.ErrAlbumAlreadyExists) {
 			return echo.NewHTTPError(http.StatusConflict, err.Error())
 		}
-		if errors.Is(err, service.ErrCannotCreateAlbum) {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 

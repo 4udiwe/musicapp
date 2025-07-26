@@ -19,7 +19,7 @@ func New(gs GenreService) *Handler {
 }
 
 type Request struct {
-	AlbumID int64 `json:"album_id" validate:"required"`
+	AlbumID int64 `param:"id" validate:"required"`
 	GenreID int64 `json:"genre_id" validate:"required"`
 }
 

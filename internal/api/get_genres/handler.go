@@ -1,11 +1,9 @@
 package get_genres
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/4udiwe/musicshop/internal/entity"
-	service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/labstack/echo/v4"
 )
 
@@ -55,9 +53,6 @@ func (h *Handler) Handle(c echo.Context) error {
 	}
 	genres, err := h.genreService.FindAll(c.Request().Context())
 	if err != nil {
-		if errors.Is(err, service.ErrCannotFetchGenres) {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, ToResponseList(genres))

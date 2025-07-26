@@ -18,9 +18,7 @@ func New(albumsService AlbumsService) *Handler {
 	}
 }
 
-type Request struct {
-	// ID int64 `param:"id" validate:"required"`
-}
+type Request struct {}
 
 type Genre struct {
 	ID   int64  `json:"id"`
