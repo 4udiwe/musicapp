@@ -41,24 +41,20 @@ func (s *Service) FindAll(ctx context.Context) ([]entity.Album, error) {
 func (s *Service) FindById(ctx context.Context, id int64) (entity.Album, error) {
 	album, err := s.albumRepository.FindById(ctx, id)
 	if err != nil {
-		if errors.Is(err, repo.ErrDatabase) {
-			return entity.Album{}, ErrFindingAlbum
-		}
 		if errors.Is(err, repo.ErrAlbumNotFound) {
 			return entity.Album{}, ErrAlbumNotFound
 		}
+		return entity.Album{}, ErrFindingAlbum
 	}
 	return album, nil
 }
 
 func (s *Service) DeleteById(ctx context.Context, id int64) error {
 	if err := s.albumRepository.Delete(ctx, id); err != nil {
-		if errors.Is(err, repo.ErrDatabase) {
-			return ErrFindingAlbum
-		}
 		if errors.Is(err, repo.ErrAlbumNotFound) {
 			return ErrAlbumNotFound
 		}
+		return ErrFindingAlbum
 	}
 	return nil
 }
