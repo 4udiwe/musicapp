@@ -32,7 +32,7 @@ func (s *Service) Create(ctx context.Context, genre entity.Genre) (int64, error)
 func (s *Service) FindAll(ctx context.Context) (genres []entity.Genre, err error) {
 	genres, err = s.genreRepository.FindAll(ctx)
 	if err != nil {
-		return []entity.Genre{}, ErrCannotFetchGenres
+		return nil, ErrCannotFetchGenres
 	}
 	return genres, nil
 }
