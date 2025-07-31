@@ -4,35 +4,25 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/4udiwe/musicshop/internal/api"
+	"github.com/4udiwe/musicshop/internal/api/decorator"
 	service "github.com/4udiwe/musicshop/internal/service/albums"
 	"github.com/labstack/echo/v4"
 )
 
-type Handler struct {
+type handler struct {
 	albumsService AlbumsService
 }
 
-func New(albumsService AlbumsService) *Handler {
-	return &Handler{
-		albumsService: albumsService,
-	}
+func New(albumsService AlbumsService) api.Handler {
+	return decorator.NewBindAndValidateDerocator(&handler{albumsService: albumsService})
 }
 
 type Request struct {
 	ID int64 `param:"id" validate:"required"`
 }
 
-func (h *Handler) Handle(c echo.Context) error {
-	var in Request
-
-	if err := c.Bind(&in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
+func (h *handler) Handle(c echo.Context, in Request) error {
 	err := h.albumsService.DeleteById(c.Request().Context(), in.ID)
 	if err != nil {
 		if errors.Is(err, service.ErrAlbumNotFound) {

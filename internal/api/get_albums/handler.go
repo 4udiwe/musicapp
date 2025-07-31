@@ -3,6 +3,8 @@ package get_albums
 import (
 	"net/http"
 
+	"github.com/4udiwe/musicshop/internal/api"
+	"github.com/4udiwe/musicshop/internal/api/decorator"
 	"github.com/4udiwe/musicshop/internal/entity"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
@@ -12,13 +14,13 @@ type Handler struct {
 	albumsService AlbumsService
 }
 
-func New(albumsService AlbumsService) *Handler {
-	return &Handler{
+func New(albumsService AlbumsService) api.Handler {
+	return decorator.NewBindAndValidateDerocator(&Handler{
 		albumsService: albumsService,
-	}
+	})
 }
 
-type Request struct {}
+type Request struct{}
 
 type Genre struct {
 	ID   int64  `json:"id"`
@@ -37,17 +39,7 @@ type Response struct {
 	Albums []Album `json:"albums"`
 }
 
-func (h *Handler) Handle(c echo.Context) error {
-	var in Request
-
-	if err := c.Bind(&in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
+func (h *Handler) Handle(c echo.Context, in Request) error {
 	out, err := h.albumsService.FindAll(c.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

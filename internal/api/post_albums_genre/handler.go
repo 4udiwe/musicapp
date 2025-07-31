@@ -4,18 +4,20 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/4udiwe/musicshop/internal/api"
+	"github.com/4udiwe/musicshop/internal/api/decorator"
 	service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/labstack/echo/v4"
 )
 
-type Handler struct {
+type handler struct {
 	genreService GenreService
 }
 
-func New(gs GenreService) *Handler {
-	return &Handler{
+func New(gs GenreService) api.Handler {
+	return decorator.NewBindAndValidateDerocator(&handler{
 		genreService: gs,
-	}
+	})
 }
 
 type Request struct {
@@ -23,16 +25,7 @@ type Request struct {
 	GenreID int64 `json:"genre_id" validate:"required"`
 }
 
-func (h *Handler) Handle(c echo.Context) error {
-	var in Request
-
-	if err := c.Bind(&in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+func (h *handler) Handle(c echo.Context, in Request) error {
 	err := h.genreService.AddGenreToAlbum(c.Request().Context(), in.AlbumID, in.GenreID)
 	if err != nil {
 		if errors.Is(err, service.ErrCannotAddConstraintAlbumGenre) {

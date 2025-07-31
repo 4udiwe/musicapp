@@ -3,18 +3,20 @@ package get_genres
 import (
 	"net/http"
 
+	"github.com/4udiwe/musicshop/internal/api"
+	"github.com/4udiwe/musicshop/internal/api/decorator"
 	"github.com/4udiwe/musicshop/internal/entity"
 	"github.com/labstack/echo/v4"
 )
 
-type Handler struct {
+type handler struct {
 	genreService GenreService
 }
 
-func New(gs GenreService) *Handler {
-	return &Handler{
+func New(gs GenreService) api.Handler {
+	return decorator.NewBindAndValidateDerocator(&handler{
 		genreService: gs,
-	}
+	})
 }
 
 type Request struct{}
@@ -41,16 +43,7 @@ func ToResponseList(genres []entity.Genre) []Response {
 	return result
 }
 
-func (h *Handler) Handle(c echo.Context) error {
-	var in Request
-
-	if err := c.Bind(&in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(in); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
+func (h *handler) Handle(c echo.Context, in Request) error {
 	genres, err := h.genreService.FindAll(c.Request().Context())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
