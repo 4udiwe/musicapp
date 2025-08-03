@@ -6,26 +6,37 @@ import (
 
 	"github.com/4udiwe/musicshop/internal/entity"
 	repo "github.com/4udiwe/musicshop/internal/repo"
+	"github.com/4udiwe/musicshop/pkg/transactor"
 )
 
 type Service struct {
 	albumRepository AlbumRepository
+	txManager       transactor.Transactor
 }
 
-func New(albumRepository AlbumRepository) *Service {
+func New(albumRepository AlbumRepository, t transactor.Transactor) *Service {
 	return &Service{
 		albumRepository: albumRepository,
+		txManager:       t,
 	}
 }
 
 func (s *Service) Create(ctx context.Context, a entity.Album) (int64, error) {
-	id, err := s.albumRepository.Create(ctx, a)
+	var id int64
+
+	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		var err error
+		id, err = s.albumRepository.Create(ctx, a)
+		return err
+	})
+
 	if err != nil {
 		if errors.Is(err, repo.ErrAlbumAlreadyExists) {
 			return 0, ErrAlbumAlreadyExists
 		}
 		return 0, ErrCannotCreateAlbum
 	}
+
 	return id, nil
 }
 

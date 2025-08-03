@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/4udiwe/musicshop/internal/entity"
+	"github.com/4udiwe/musicshop/internal/mocks/mock_albums"
+	"github.com/4udiwe/musicshop/internal/mocks/mock_transactor"
 	repo "github.com/4udiwe/musicshop/internal/repo"
-	"github.com/4udiwe/musicshop/internal/repo/mock_albums"
 	service "github.com/4udiwe/musicshop/internal/service/albums"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -19,7 +20,7 @@ func TestCreate(t *testing.T) {
 		ctx          = context.Background()
 	)
 
-	type MockBehavior func(r *mock_albums.MockAlbumRepository)
+	type MockBehavior func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor)
 
 	album := entity.Album{
 		Title:  "title",
@@ -35,24 +36,40 @@ func TestCreate(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository) {
+			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
 				r.EXPECT().Create(ctx, album).Return(int64(1), nil)
+				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
+					DoAndReturn(
+						func(ctx context.Context, fn func(ctx context.Context) error) error {
+							return fn(ctx)
+						})
+
 			},
 			want:    1,
 			wantErr: nil,
 		},
 		{
 			name: "album already exists",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository) {
+			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
 				r.EXPECT().Create(ctx, album).Return(int64(0), repo.ErrAlbumAlreadyExists)
+				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
+					DoAndReturn(
+						func(ctx context.Context, fn func(ctx context.Context) error) error {
+							return fn(ctx)
+						})
 			},
 			want:    0,
 			wantErr: service.ErrAlbumAlreadyExists,
 		},
 		{
 			name: "cannot create album",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository) {
+			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
 				r.EXPECT().Create(ctx, album).Return(int64(0), arbitraryErr)
+				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
+					DoAndReturn(
+						func(ctx context.Context, fn func(ctx context.Context) error) error {
+							return fn(ctx)
+						})
 			},
 			want:    0,
 			wantErr: service.ErrCannotCreateAlbum,
@@ -63,10 +80,11 @@ func TestCreate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
-			tc.mockBehavior(mockAlbumRepository)
+			tc.mockBehavior(mockAlbumRepository, mockTransactor)
 
-			s := service.New(mockAlbumRepository)
+			s := service.New(mockAlbumRepository, mockTransactor)
 
 			out, err := s.Create(ctx, album)
 
@@ -130,10 +148,11 @@ func TestFindAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository)
+			s := service.New(mockAlbumRepository, mockTransactor)
 
 			out, err := s.FindAll(ctx)
 
@@ -195,10 +214,11 @@ func TestFindById(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository)
+			s := service.New(mockAlbumRepository, mockTransactor)
 
 			out, err := s.FindById(ctx, id)
 
@@ -249,10 +269,11 @@ func TestDeleteById(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository)
+			s := service.New(mockAlbumRepository, mockTransactor)
 
 			err := s.DeleteById(ctx, id)
 

@@ -35,7 +35,7 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 		return 0, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
 
-	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(&id)
+	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -72,7 +72,7 @@ func (r *Repository) FindAll(ctx context.Context) ([]entity.Album, error) {
             a.price`).
 		ToSql()
 
-	rows, err := r.pg.Pool.Query(ctx, query, args...)
+	rows, err := r.pg.GetTxManager(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -96,7 +96,7 @@ func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album
 	if err != nil {
 		return entity.Album{}, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
-	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
+	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entity.Album{}, fmt.Errorf("%w: album with id '%d' not found", repo.ErrAlbumNotFound, id)
@@ -124,8 +124,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: failed to build delete query: %v", repo.ErrDatabase, err)
 	}
 
-	// Используем Exec вместо Query, так как нам не нужны возвращаемые строки
-	result, err := r.pg.Pool.Exec(ctx, query, args...)
+	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

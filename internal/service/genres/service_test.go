@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/4udiwe/musicshop/internal/entity"
+	"github.com/4udiwe/musicshop/internal/mocks/mock_genres"
+	"github.com/4udiwe/musicshop/internal/mocks/mock_transactor"
 	repo "github.com/4udiwe/musicshop/internal/repo"
-	"github.com/4udiwe/musicshop/internal/repo/mock_genres"
 	service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -61,10 +62,11 @@ func TestCreate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockGenreRepository := mock_genres.NewMockGenreRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockGenreRepository)
 
-			s := service.New(mockGenreRepository)
+			s := service.New(mockGenreRepository, mockTransactor)
 
 			out, err := s.Create(ctx, genre)
 
@@ -122,10 +124,11 @@ func TestFindAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockGenreRepository := mock_genres.NewMockGenreRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockGenreRepository)
 
-			s := service.New(mockGenreRepository)
+			s := service.New(mockGenreRepository, mockTransactor)
 
 			out, err := s.FindAll(ctx)
 
@@ -176,10 +179,11 @@ func TestDeleteById(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockGenreRepository := mock_genres.NewMockGenreRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockGenreRepository)
 
-			s := service.New(mockGenreRepository)
+			s := service.New(mockGenreRepository, mockTransactor)
 
 			err := s.DeleteGenre(ctx, id)
 
@@ -223,10 +227,11 @@ func TestAddGenreToAlbum(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockGenreRepository := mock_genres.NewMockGenreRepository(ctrl)
+			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockGenreRepository)
 
-			s := service.New(mockGenreRepository)
+			s := service.New(mockGenreRepository, mockTransactor)
 
 			err := s.AddGenreToAlbum(ctx, albumID, genreID)
 

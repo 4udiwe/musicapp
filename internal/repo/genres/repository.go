@@ -34,7 +34,7 @@ func (r *Repository) Create(ctx context.Context, genre entity.Genre) (id int64, 
 		return 0, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
 
-	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(&id)
+	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -61,7 +61,7 @@ func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID
 		return fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
 
-	result, err := r.pg.Pool.Exec(ctx, query, args...)
+	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -91,7 +91,7 @@ func (r *Repository) FindAll(ctx context.Context) (genres []entity.Genre, err er
 		return nil, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
 	}
 
-	rows, err := r.pg.Pool.Query(ctx, query, args...)
+	rows, err := r.pg.GetTxManager(ctx).Query(ctx, query, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -135,7 +135,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: failed to build delete query: %v", repo.ErrDatabase, err)
 	}
 
-	result, err := r.pg.Pool.Exec(ctx, query, args...)
+	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

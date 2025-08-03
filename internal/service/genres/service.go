@@ -6,15 +6,18 @@ import (
 
 	"github.com/4udiwe/musicshop/internal/entity"
 	repo "github.com/4udiwe/musicshop/internal/repo"
+	"github.com/4udiwe/musicshop/pkg/transactor"
 )
 
 type Service struct {
 	genreRepository GenreRepository
+	txManager       transactor.Transactor
 }
 
-func New(r GenreRepository) *Service {
+func New(r GenreRepository, t transactor.Transactor) *Service {
 	return &Service{
 		genreRepository: r,
+		txManager:       t,
 	}
 }
 
