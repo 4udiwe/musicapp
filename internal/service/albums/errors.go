@@ -8,4 +8,5 @@ var (
 	ErrCannotFetchAlbums  = errors.New("cannot fetch albums")
 	ErrFindingAlbum       = errors.New("error finding album")
 	ErrAlbumNotFound      = errors.New("album not found")
+	ErrGenreNotExists     = errors.New("genre with given id does not exist")
 )

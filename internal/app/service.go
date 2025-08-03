@@ -9,7 +9,7 @@ func (app *App) AlbumsService() *albums.Service {
 	if app.albumsService != nil {
 		return app.albumsService
 	}
-	app.albumsService = albums.New(app.AlbumsRepo(), app.Postgres())
+	app.albumsService = albums.New(app.AlbumsRepo(), app.GenresRepo(), app.Postgres())
 	return app.albumsService
 }
 

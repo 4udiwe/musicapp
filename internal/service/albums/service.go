@@ -7,16 +7,23 @@ import (
 	"github.com/4udiwe/musicshop/internal/entity"
 	repo "github.com/4udiwe/musicshop/internal/repo"
 	"github.com/4udiwe/musicshop/pkg/transactor"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
 	albumRepository AlbumRepository
+	genreRepository GenreRepository
 	txManager       transactor.Transactor
 }
 
-func New(albumRepository AlbumRepository, t transactor.Transactor) *Service {
+func New(
+	a AlbumRepository,
+	g GenreRepository,
+	t transactor.Transactor,
+) *Service {
 	return &Service{
-		albumRepository: albumRepository,
+		albumRepository: a,
+		genreRepository: g,
 		txManager:       t,
 	}
 }
@@ -27,12 +34,26 @@ func (s *Service) Create(ctx context.Context, a entity.Album) (int64, error) {
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		var err error
 		id, err = s.albumRepository.Create(ctx, a)
+		if err != nil {
+			return err
+		}
+		for _, genre := range a.Genres {
+			err = s.genreRepository.AddGenreToAlbum(ctx, id, genre.ID)
+			if err != nil {
+				return err
+			}
+		}
 		return err
+
 	})
 
 	if err != nil {
+		logrus.Infof("Result err = %v", err.Error())
 		if errors.Is(err, repo.ErrAlbumAlreadyExists) {
 			return 0, ErrAlbumAlreadyExists
+		}
+		if errors.Is(err, repo.ErrAddAlbumGenreConstraintFail) {
+			return 0, ErrGenreNotExists
 		}
 		return 0, ErrCannotCreateAlbum
 	}

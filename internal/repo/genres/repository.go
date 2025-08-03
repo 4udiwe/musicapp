@@ -66,7 +66,7 @@ func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			return fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
+				repo.ErrAddAlbumGenreConstraintFail, pgErr.Code, pgErr.Message)
 		}
 		return fmt.Errorf("%w: failed to execute insert query: %v", repo.ErrDatabase, err)
 	}
@@ -74,7 +74,7 @@ func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf(
 			"%w: failed to add constraint, album id: %d, genre id: %d",
-			repo.ErrAddAlbumGenreConstraintFali, albumID, genreID,
+			repo.ErrAddAlbumGenreConstraintFail, albumID, genreID,
 		)
 	}
 

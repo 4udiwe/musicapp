@@ -7,6 +7,7 @@ import (
 
 	"github.com/4udiwe/musicshop/internal/entity"
 	"github.com/4udiwe/musicshop/internal/mocks/mock_albums"
+	"github.com/4udiwe/musicshop/internal/mocks/mock_genres"
 	"github.com/4udiwe/musicshop/internal/mocks/mock_transactor"
 	repo "github.com/4udiwe/musicshop/internal/repo"
 	service "github.com/4udiwe/musicshop/internal/service/albums"
@@ -18,14 +19,24 @@ func TestCreate(t *testing.T) {
 	var (
 		arbitraryErr = errors.New("arbitrary error")
 		ctx          = context.Background()
+		albumID      = int64(1)
 	)
 
-	type MockBehavior func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor)
+	type MockBehavior func(
+		a *mock_albums.MockAlbumRepository,
+		g *mock_genres.MockGenreRepository,
+		t *mock_transactor.MockTransactor,
+	)
 
 	album := entity.Album{
 		Title:  "title",
 		Artist: "artist",
 		Price:  100.0,
+		Genres: []entity.Genre{
+			{ID: 1, Name: "genre1"},
+			{ID: 2, Name: "genre2"},
+			{ID: 3, Name: "genre3"},
+		},
 	}
 
 	for _, tc := range []struct {
@@ -36,43 +47,79 @@ func TestCreate(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
-				r.EXPECT().Create(ctx, album).Return(int64(1), nil)
+			mockBehavior: func(a_repo *mock_albums.MockAlbumRepository, g_repo *mock_genres.MockGenreRepository, t *mock_transactor.MockTransactor) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(
 						func(ctx context.Context, fn func(ctx context.Context) error) error {
 							return fn(ctx)
 						})
 
+				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
+
+				for _, g := range album.Genres {
+					g_repo.EXPECT().AddGenreToAlbum(ctx, albumID, g.ID).Return(nil)
+				}
 			},
 			want:    1,
 			wantErr: nil,
 		},
 		{
 			name: "album already exists",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
-				r.EXPECT().Create(ctx, album).Return(int64(0), repo.ErrAlbumAlreadyExists)
+			mockBehavior: func(a_repo *mock_albums.MockAlbumRepository, g_repo *mock_genres.MockGenreRepository, t *mock_transactor.MockTransactor) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(
 						func(ctx context.Context, fn func(ctx context.Context) error) error {
 							return fn(ctx)
 						})
+
+				a_repo.EXPECT().Create(ctx, album).Return(int64(0), repo.ErrAlbumAlreadyExists)
 			},
 			want:    0,
 			wantErr: service.ErrAlbumAlreadyExists,
 		},
 		{
 			name: "cannot create album",
-			mockBehavior: func(r *mock_albums.MockAlbumRepository, t *mock_transactor.MockTransactor) {
-				r.EXPECT().Create(ctx, album).Return(int64(0), arbitraryErr)
+			mockBehavior: func(a_repo *mock_albums.MockAlbumRepository, g_repo *mock_genres.MockGenreRepository, t *mock_transactor.MockTransactor) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(
 						func(ctx context.Context, fn func(ctx context.Context) error) error {
 							return fn(ctx)
 						})
+
+				a_repo.EXPECT().Create(ctx, album).Return(int64(0), arbitraryErr)
 			},
 			want:    0,
 			wantErr: service.ErrCannotCreateAlbum,
+		},
+		{
+			name: "transaction error",
+			mockBehavior: func(a_repo *mock_albums.MockAlbumRepository, g_repo *mock_genres.MockGenreRepository, t *mock_transactor.MockTransactor) {
+				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
+					DoAndReturn(
+						func(ctx context.Context, fn func(ctx context.Context) error) error {
+							return arbitraryErr
+						})
+
+			},
+			want:    0,
+			wantErr: service.ErrCannotCreateAlbum,
+		},
+		{
+			name: "cannot add genre to album",
+			mockBehavior: func(a_repo *mock_albums.MockAlbumRepository, g_repo *mock_genres.MockGenreRepository, t *mock_transactor.MockTransactor) {
+				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
+					DoAndReturn(
+						func(ctx context.Context, fn func(ctx context.Context) error) error {
+							return fn(ctx)
+						})
+
+				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
+
+				g_repo.EXPECT().AddGenreToAlbum(ctx, albumID, album.Genres[0].ID).Return(repo.ErrAddAlbumGenreConstraintFail)
+
+			},
+			want:    0,
+			wantErr: service.ErrGenreNotExists,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -80,11 +127,12 @@ func TestCreate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockGenresRepository := mock_genres.NewMockGenreRepository(ctrl)
 			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
-			tc.mockBehavior(mockAlbumRepository, mockTransactor)
+			tc.mockBehavior(mockAlbumRepository, mockGenresRepository, mockTransactor)
 
-			s := service.New(mockAlbumRepository, mockTransactor)
+			s := service.New(mockAlbumRepository, mockGenresRepository, mockTransactor)
 
 			out, err := s.Create(ctx, album)
 
@@ -148,11 +196,12 @@ func TestFindAll(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockGenresRepository := mock_genres.NewMockGenreRepository(ctrl)
 			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository, mockTransactor)
+			s := service.New(mockAlbumRepository, mockGenresRepository, mockTransactor)
 
 			out, err := s.FindAll(ctx)
 
@@ -214,11 +263,12 @@ func TestFindById(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockGenresRepository := mock_genres.NewMockGenreRepository(ctrl)
 			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository, mockTransactor)
+			s := service.New(mockAlbumRepository, mockGenresRepository, mockTransactor)
 
 			out, err := s.FindById(ctx, id)
 
@@ -269,11 +319,12 @@ func TestDeleteById(t *testing.T) {
 			ctrl := gomock.NewController(t)
 
 			mockAlbumRepository := mock_albums.NewMockAlbumRepository(ctrl)
+			mockGenresRepository := mock_genres.NewMockGenreRepository(ctrl)
 			mockTransactor := mock_transactor.NewMockTransactor(ctrl)
 
 			tc.mockBehavior(mockAlbumRepository)
 
-			s := service.New(mockAlbumRepository, mockTransactor)
+			s := service.New(mockAlbumRepository, mockGenresRepository, mockTransactor)
 
 			err := s.DeleteById(ctx, id)
 
