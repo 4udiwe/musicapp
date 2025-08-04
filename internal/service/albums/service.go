@@ -7,7 +7,7 @@ import (
 	"github.com/4udiwe/musicshop/internal/entity"
 	repo "github.com/4udiwe/musicshop/internal/repo"
 	"github.com/4udiwe/musicshop/pkg/transactor"
-	"github.com/sirupsen/logrus"
+	"github.com/samber/lo"
 )
 
 type Service struct {
@@ -37,18 +37,17 @@ func (s *Service) Create(ctx context.Context, a entity.Album) (int64, error) {
 		if err != nil {
 			return err
 		}
-		for _, genre := range a.Genres {
-			err = s.genreRepository.AddGenreToAlbum(ctx, id, genre.ID)
-			if err != nil {
-				return err
-			}
+		if len(a.Genres) > 0 {
+			err = s.genreRepository.AddGenresToAlbum(
+				ctx,
+				id,
+				lo.Map(a.Genres, func(g entity.Genre, i int) int64 { return g.ID })...,
+			)
 		}
 		return err
-
 	})
 
 	if err != nil {
-		logrus.Infof("Result err = %v", err.Error())
 		if errors.Is(err, repo.ErrAlbumAlreadyExists) {
 			return 0, ErrAlbumAlreadyExists
 		}

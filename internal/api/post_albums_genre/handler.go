@@ -8,6 +8,7 @@ import (
 	"github.com/4udiwe/musicshop/internal/api/decorator"
 	service "github.com/4udiwe/musicshop/internal/service/genres"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/lo"
 )
 
 type handler struct {
@@ -20,16 +21,23 @@ func New(gs GenreService) api.Handler {
 	})
 }
 
+type Genre struct {
+	ID int64 `json:"genre_id" validate:"required"`
+}
+
 type Request struct {
-	AlbumID int64 `param:"id" validate:"required"`
-	GenreID int64 `json:"genre_id" validate:"required"`
+	AlbumID int64   `param:"id" validate:"required"`
+	Genres  []Genre `json:"genres"`
 }
 
 func (h *handler) Handle(c echo.Context, in Request) error {
-	err := h.genreService.AddGenreToAlbum(c.Request().Context(), in.AlbumID, in.GenreID)
+	genreIDs := lo.Map(in.Genres, func(g Genre, i int) int64 {
+		return g.ID
+	})
+	err := h.genreService.AddGenresToAlbum(c.Request().Context(), in.AlbumID, genreIDs...)
 	if err != nil {
 		if errors.Is(err, service.ErrCannotAddConstraintAlbumGenre) {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

@@ -11,4 +11,5 @@ var (
 	ErrGenreNotFound               = errors.New("genre not found")
 	ErrGenreAlreadyExists          = errors.New("genre already exists")
 	ErrAddAlbumGenreConstraintFail = errors.New("cannot add constraint album_genre")
+	ErrCannotAddEmptyGenres        = errors.New("cannot add empty genres to album")
 )

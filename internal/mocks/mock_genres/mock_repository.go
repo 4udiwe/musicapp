@@ -41,18 +41,23 @@ func (m *MockGenreRepository) EXPECT() *MockGenreRepositoryMockRecorder {
 	return m.recorder
 }
 
-// AddGenreToAlbum mocks base method.
-func (m *MockGenreRepository) AddGenreToAlbum(ctx context.Context, albumID, genreID int64) error {
+// AddGenresToAlbum mocks base method.
+func (m *MockGenreRepository) AddGenresToAlbum(ctx context.Context, albumID int64, genreIDs ...int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddGenreToAlbum", ctx, albumID, genreID)
+	varargs := []any{ctx, albumID}
+	for _, a := range genreIDs {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AddGenresToAlbum", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddGenreToAlbum indicates an expected call of AddGenreToAlbum.
-func (mr *MockGenreRepositoryMockRecorder) AddGenreToAlbum(ctx, albumID, genreID any) *gomock.Call {
+// AddGenresToAlbum indicates an expected call of AddGenresToAlbum.
+func (mr *MockGenreRepositoryMockRecorder) AddGenresToAlbum(ctx, albumID any, genreIDs ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGenreToAlbum", reflect.TypeOf((*MockGenreRepository)(nil).AddGenreToAlbum), ctx, albumID, genreID)
+	varargs := append([]any{ctx, albumID}, genreIDs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGenresToAlbum", reflect.TypeOf((*MockGenreRepository)(nil).AddGenresToAlbum), varargs...)
 }
 
 // Create mocks base method.

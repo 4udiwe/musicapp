@@ -20,6 +20,7 @@ func TestCreate(t *testing.T) {
 		arbitraryErr = errors.New("arbitrary error")
 		ctx          = context.Background()
 		albumID      = int64(1)
+		genreIDs     = []int64{1, 2, 3}
 	)
 
 	type MockBehavior func(
@@ -33,9 +34,9 @@ func TestCreate(t *testing.T) {
 		Artist: "artist",
 		Price:  100.0,
 		Genres: []entity.Genre{
-			{ID: 1, Name: "genre1"},
-			{ID: 2, Name: "genre2"},
-			{ID: 3, Name: "genre3"},
+			{ID: 1},
+			{ID: 2},
+			{ID: 3},
 		},
 	}
 
@@ -56,9 +57,8 @@ func TestCreate(t *testing.T) {
 
 				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
 
-				for _, g := range album.Genres {
-					g_repo.EXPECT().AddGenreToAlbum(ctx, albumID, g.ID).Return(nil)
-				}
+				g_repo.EXPECT().AddGenresToAlbum(ctx, albumID, genreIDs).Return(nil)
+
 			},
 			want:    1,
 			wantErr: nil,
@@ -115,7 +115,7 @@ func TestCreate(t *testing.T) {
 
 				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
 
-				g_repo.EXPECT().AddGenreToAlbum(ctx, albumID, album.Genres[0].ID).Return(repo.ErrAddAlbumGenreConstraintFail)
+				g_repo.EXPECT().AddGenresToAlbum(ctx, albumID, genreIDs).Return(repo.ErrAddAlbumGenreConstraintFail)
 
 			},
 			want:    0,

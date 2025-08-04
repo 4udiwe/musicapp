@@ -192,32 +192,53 @@ func TestDeleteById(t *testing.T) {
 	}
 }
 
-func TestAddGenreToAlbum(t *testing.T) {
+func TestAddGenresToAlbum(t *testing.T) {
 	var (
-		arbitraryErr = errors.New("arbitrary error")
-		ctx          = context.Background()
-		albumID      = int64(111)
-		genreID      = int64(222)
+		arbitraryErr   = errors.New("arbitrary error")
+		ctx            = context.Background()
+		albumID        = int64(111)
+		singleGenre    = []int64{1}
+		multipleGenres = []int64{1, 2, 3}
+		emptyGenres    = []int64{}
 	)
 
 	type MockBehavior func(r *mock_genres.MockGenreRepository)
 
 	for _, tc := range []struct {
 		name         string
+		genres       []int64
 		mockBehavior MockBehavior
 		wantErr      error
 	}{
 		{
-			name: "success",
+			name:   "success single genre",
+			genres: singleGenre,
 			mockBehavior: func(r *mock_genres.MockGenreRepository) {
-				r.EXPECT().AddGenreToAlbum(ctx, albumID, genreID).Return(nil)
+				r.EXPECT().AddGenresToAlbum(ctx, albumID, singleGenre).Return(nil)
 			},
 			wantErr: nil,
 		},
 		{
-			name: "cannot add constraint between album and genre",
+			name:   "success multiple genre",
+			genres: multipleGenres,
 			mockBehavior: func(r *mock_genres.MockGenreRepository) {
-				r.EXPECT().AddGenreToAlbum(ctx, albumID, genreID).Return(arbitraryErr)
+				r.EXPECT().AddGenresToAlbum(ctx, albumID, multipleGenres).Return(nil)
+			},
+			wantErr: nil,
+		},
+		{
+			name:   "cannot add empty genres",
+			genres: emptyGenres,
+			mockBehavior: func(r *mock_genres.MockGenreRepository) {
+				r.EXPECT().AddGenresToAlbum(ctx, albumID, emptyGenres).Return(repo.ErrCannotAddEmptyGenres)
+			},
+			wantErr: service.ErrCannotAddEmptyGenres,
+		},
+		{
+			name:   "cannot add constraint between album and genre",
+			genres: singleGenre,
+			mockBehavior: func(r *mock_genres.MockGenreRepository) {
+				r.EXPECT().AddGenresToAlbum(ctx, albumID, singleGenre).Return(arbitraryErr)
 			},
 			wantErr: service.ErrCannotAddConstraintAlbumGenre,
 		},
@@ -233,7 +254,7 @@ func TestAddGenreToAlbum(t *testing.T) {
 
 			s := service.New(mockGenreRepository, mockTransactor)
 
-			err := s.AddGenreToAlbum(ctx, albumID, genreID)
+			err := s.AddGenresToAlbum(ctx, albumID, tc.genres...)
 
 			assert.ErrorIs(t, err, tc.wantErr)
 		})

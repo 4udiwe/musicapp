@@ -7,6 +7,7 @@ import (
 	"github.com/4udiwe/musicshop/internal/entity"
 	repo "github.com/4udiwe/musicshop/internal/repo"
 	"github.com/4udiwe/musicshop/pkg/transactor"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -51,9 +52,13 @@ func (s *Service) DeleteGenre(ctx context.Context, genreID int64) error {
 	return nil
 }
 
-func (s *Service) AddGenreToAlbum(ctx context.Context, albumID int64, genreID int64) error {
-	err := s.genreRepository.AddGenreToAlbum(ctx, albumID, genreID)
+func (s *Service) AddGenresToAlbum(ctx context.Context, albumID int64, genreIDs ...int64) error {
+	err := s.genreRepository.AddGenresToAlbum(ctx, albumID, genreIDs...)
 	if err != nil {
+		logrus.Errorf("AddGEnres to album error: %v", err)
+		if errors.Is(err, repo.ErrCannotAddEmptyGenres) {
+			return ErrCannotAddEmptyGenres
+		}
 		return ErrCannotAddConstraintAlbumGenre
 	}
 	return nil

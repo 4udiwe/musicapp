@@ -50,15 +50,24 @@ func (r *Repository) Create(ctx context.Context, genre entity.Genre) (id int64, 
 	}
 	return id, nil
 }
-func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID int64) error {
-	query, args, err := r.pg.Builder.
+
+func (r *Repository) AddGenresToAlbum(ctx context.Context, albumID int64, genreIDs ...int64) error {
+	if len(genreIDs) < 1 {
+		return repo.ErrCannotAddEmptyGenres
+	}
+
+	builder := r.pg.Builder.
 		Insert("album_genres").
-		Columns("album_id", "genre_id").
-		Values(albumID, genreID).
-		ToSql()
+		Columns("album_id", "genre_id")
+
+	for _, genreID := range genreIDs {
+		builder = builder.Values(albumID, genreID)
+	}
+
+	query, args, err := builder.ToSql()
 
 	if err != nil {
-		return fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("%w: failed to build query", err)
 	}
 
 	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
@@ -68,13 +77,13 @@ func (r *Repository) AddGenreToAlbum(ctx context.Context, albumID int64, genreID
 			return fmt.Errorf("%w: database error code %s: %v",
 				repo.ErrAddAlbumGenreConstraintFail, pgErr.Code, pgErr.Message)
 		}
-		return fmt.Errorf("%w: failed to execute insert query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("%w: failed to execute insert query", err)
 	}
 
-	if result.RowsAffected() == 0 {
+	if int(result.RowsAffected()) != len(genreIDs) {
 		return fmt.Errorf(
-			"%w: failed to add constraint, album id: %d, genre id: %d",
-			repo.ErrAddAlbumGenreConstraintFail, albumID, genreID,
+			"%w: failed to add all constraints, album id: %d, expected %d rows affected, got %d",
+			repo.ErrAddAlbumGenreConstraintFail, albumID, len(genreIDs), result.RowsAffected(),
 		)
 	}
 
