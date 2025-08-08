@@ -58,7 +58,6 @@ func TestCreate(t *testing.T) {
 				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
 
 				g_repo.EXPECT().AddGenresToAlbum(ctx, albumID, genreIDs).Return(nil)
-
 			},
 			want:    1,
 			wantErr: nil,
@@ -99,7 +98,6 @@ func TestCreate(t *testing.T) {
 						func(ctx context.Context, fn func(ctx context.Context) error) error {
 							return arbitraryErr
 						})
-
 			},
 			want:    0,
 			wantErr: service.ErrCannotCreateAlbum,
@@ -116,7 +114,6 @@ func TestCreate(t *testing.T) {
 				a_repo.EXPECT().Create(ctx, album).Return(albumID, nil)
 
 				g_repo.EXPECT().AddGenresToAlbum(ctx, albumID, genreIDs).Return(repo.ErrAddAlbumGenreConstraintFail)
-
 			},
 			want:    0,
 			wantErr: service.ErrGenreNotExists,

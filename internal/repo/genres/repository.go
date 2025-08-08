@@ -31,7 +31,7 @@ func (r *Repository) Create(ctx context.Context, genre entity.Genre) (id int64, 
 		Suffix("RETURNING id").
 		ToSql()
 	if err != nil {
-		return 0, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
+		return 0, fmt.Errorf("failed to build query: %w", err)
 	}
 
 	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&id)
@@ -44,9 +44,9 @@ func (r *Repository) Create(ctx context.Context, genre entity.Genre) (id int64, 
 			}
 		}
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, fmt.Errorf("%w: no returned id after insert", repo.ErrDatabase)
+			return 0, fmt.Errorf("%w: no returned id after insert", err)
 		}
-		return 0, fmt.Errorf("%w: failed to execute query: %v", repo.ErrDatabase, err)
+		return 0, fmt.Errorf("failed to execute query: %w", err)
 	}
 	return id, nil
 }
@@ -97,7 +97,7 @@ func (r *Repository) FindAll(ctx context.Context) (genres []entity.Genre, err er
 		ToSql()
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
+		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
 
 	rows, err := r.pg.GetTxManager(ctx).Query(ctx, query, args...)
@@ -105,9 +105,9 @@ func (r *Repository) FindAll(ctx context.Context) (genres []entity.Genre, err er
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			return nil, fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
+				err, pgErr.Code, pgErr.Message)
 		}
-		return nil, fmt.Errorf("%w: failed to execute query: %v", repo.ErrDatabase, err)
+		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
@@ -118,13 +118,13 @@ func (r *Repository) FindAll(ctx context.Context) (genres []entity.Genre, err er
 			&genre.ID,
 			&genre.Name,
 		); err != nil {
-			return nil, fmt.Errorf("%w: failed to scan row: %v", repo.ErrDatabase, err)
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		genres = append(genres, genre)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("%w: rows iteration error: %v", repo.ErrDatabase, err)
+		return nil, fmt.Errorf("rows iteration error: %w", err)
 	}
 
 	if len(genres) == 0 {
@@ -141,7 +141,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		ToSql()
 
 	if err != nil {
-		return fmt.Errorf("%w: failed to build delete query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("failed to build delete query: %w", err)
 	}
 
 	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
@@ -149,9 +149,9 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			return fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
+				err, pgErr.Code, pgErr.Message)
 		}
-		return fmt.Errorf("%w: failed to execute delete query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("failed to execute delete query: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {

@@ -1,0 +1,31 @@
+version: '2'
+
+linters:
+  enable:
+    - gocritic
+    - govet
+    - staticcheck
+    - errcheck
+    - errorlint
+    - misspell
+    - unused
+    - whitespace
+    - unparam
+    - ineffassign
+    - goconst
+    - intrange
+    - forcetypeassert
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - goimports
+    - gofmt
+
+run:
+  timeout: 3m
+  tests: true

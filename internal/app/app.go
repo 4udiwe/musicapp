@@ -77,7 +77,7 @@ func (app *App) Start() {
 
 	// Migrations
 	if err := database.RunMigrations(context.Background(), app.postgres.Pool); err != nil {
-		log.Fatalf("app - Start - Migrations failed: %v", err)
+		log.Errorf("app - Start - Migrations failed: %v", err)
 	}
 
 	// Server

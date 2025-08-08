@@ -71,7 +71,7 @@ func (pg *Postgres) Close() {
 	}
 }
 
-// Transaction managment
+// Transaction management
 
 type txKey struct{}
 

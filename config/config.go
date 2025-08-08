@@ -17,7 +17,7 @@ type (
 
 	App struct {
 		Name    string `env-required:"true" yaml:"name" env:"APP_NAME"`
-		Versoin string `env-required:"true" yaml:"version" env:"APP_VERSION"`
+		Version string `env-required:"true" yaml:"version" env:"APP_VERSION"`
 	}
 
 	HTTP struct {

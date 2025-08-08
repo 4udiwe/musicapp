@@ -32,7 +32,7 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 		Suffix("RETURNING id").
 		ToSql()
 	if err != nil {
-		return 0, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
+		return 0, fmt.Errorf("failed to build query: %w", err)
 	}
 
 	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&id)
@@ -45,9 +45,9 @@ func (r *Repository) Create(ctx context.Context, album entity.Album) (id int64, 
 			}
 		}
 		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, fmt.Errorf("%w: no returned id after insert", repo.ErrDatabase)
+			return 0, fmt.Errorf("%w: no returned id after insert", err)
 		}
-		return 0, fmt.Errorf("%w: failed to execute query: %v", repo.ErrDatabase, err)
+		return 0, fmt.Errorf("failed to execute query: %w", err)
 	}
 	return id, nil
 }
@@ -94,7 +94,7 @@ func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album
 		ToSql()
 
 	if err != nil {
-		return entity.Album{}, fmt.Errorf("%w: failed to build query: %v", repo.ErrDatabase, err)
+		return entity.Album{}, fmt.Errorf("failed to build query: %w", err)
 	}
 	err = r.pg.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&album.ID, &album.Title, &album.Artist, &album.Price)
 	if err != nil {
@@ -105,10 +105,10 @@ func (r *Repository) FindById(ctx context.Context, id int64) (album entity.Album
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			return entity.Album{}, fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
+				err, pgErr.Code, pgErr.Message)
 		}
 
-		return entity.Album{}, fmt.Errorf("%w: failed to execute query: %v", repo.ErrDatabase, err)
+		return entity.Album{}, fmt.Errorf("failed to execute query: %w", err)
 	}
 
 	return album, nil
@@ -121,7 +121,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		ToSql()
 
 	if err != nil {
-		return fmt.Errorf("%w: failed to build delete query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("failed to build delete query: %w", err)
 	}
 
 	result, err := r.pg.GetTxManager(ctx).Exec(ctx, query, args...)
@@ -129,9 +129,9 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			return fmt.Errorf("%w: database error code %s: %v",
-				repo.ErrDatabase, pgErr.Code, pgErr.Message)
+				err, pgErr.Code, pgErr.Message)
 		}
-		return fmt.Errorf("%w: failed to execute delete query: %v", repo.ErrDatabase, err)
+		return fmt.Errorf("failed to execute delete query: %w", err)
 	}
 
 	// Проверяем, была ли удалена хотя бы одна запись
